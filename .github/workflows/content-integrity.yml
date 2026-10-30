@@ -1,8 +1,8 @@
-name: content-integrity
+name: course-integrity-and-web
 on:
   pull_request:
   push:
-    branches: [main, 'feat/s00-m01-content-integrity']
+    branches: [main, 'feat/s00-m01-content-integrity', 'feat/s00-m02-web-hardening']
 permissions:
   contents: read
 jobs:
@@ -13,7 +13,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Unit tests (isolated standard-library fixtures)
-        run: python -m unittest discover -s tests -v
+      - name: M01 content integrity
+        run: python -m unittest discover -s tests -p 'test_content_integrity.py' -v
+      - name: M02 static security and script contract
+        run: python -m unittest discover -s tests -p 'test_web_static.py' -v
       - name: Read-only course inventory
         run: python main.py audit
+
+  web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install browser runner
+        run: |
+          python -m pip install 'playwright==1.55.0'
+          python -m playwright install --with-deps chromium
+      - name: Chromium desktop, mobile and annotations E2E
+        run: python -m unittest discover -s tests -p 'test_web_e2e.py' -v
