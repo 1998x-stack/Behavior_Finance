@@ -254,3 +254,22 @@ td:hover {
   background-color: #f9f9f9; /* 单元格悬停背景颜色 */
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.1); /* 添加内阴影效果 */
 }
+
+/* M02 responsive and annotation overrides. */
+*, *::before, *::after { box-sizing: border-box; }
+body { display: block; padding: clamp(8px, 2vw, 24px); }
+.container { width: min(100%, 980px); max-width: 100%; margin: 0 auto; padding: clamp(14px, 4vw, 30px); }
+p:hover, li:hover { transform: none; }
+p, li, td, th { overflow-wrap: anywhere; }
+pre { overflow-x: auto; max-width: 100%; }
+pre code { white-space: pre; max-width: 100%; }
+table { display: block; max-width: 100%; overflow-x: auto; }
+.comment-editor { display: block; position: static; margin-top: .5rem; }
+.comment-editor input { box-sizing: border-box; display: block; width: min(100%, 460px); padding: .55rem; border: 1px solid #7f93ab; border-radius: 6px; font-size: 1rem; }
+.comment { display: block; overflow-wrap: anywhere; white-space: pre-wrap; }
+.comment-add { display: inline-block; margin: .3rem .5rem; padding: .2rem .5rem; font-size: .85rem; border: 1px solid #aac5e8; border-radius: 5px; color: #24548a; background: #f1f6fc; cursor: pointer; }
+.comment-add:focus-visible { outline: 2px solid #24548a; outline-offset: 2px; }
+.note-toolbar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: min(100%, 980px); margin: 0 auto; padding: 10px 15px; background: #fff; box-shadow: 0 -2px 14px #13263d18; }
+.save-button { position: static; display: inline-block; box-shadow: none; }
+.note-status { font-size: .85rem; color: #24548a; }
+@media (max-width: 480px) { .container { font-size: 1rem; } h1 { font-size: 1.6rem; } h2 { font-size: 1.35rem; } }
