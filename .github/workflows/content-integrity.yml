@@ -2,9 +2,10 @@ name: course-integrity-and-web
 on:
   pull_request:
   push:
-    branches: [main, 'feat/s00-m01-content-integrity', 'feat/s00-m02-web-hardening']
+    branches: [main, 'feat/s00-m01-content-integrity', 'feat/s00-m02-web-hardening', 'feat/s00-m03-single-source-site']
 permissions:
   contents: read
+
 jobs:
   content-guard:
     runs-on: ubuntu-latest
@@ -13,12 +14,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-site.txt
+      - name: Install pinned site renderer
+        run: python -m pip install -r requirements-site.txt
       - name: M01 content integrity
         run: python -m unittest discover -s tests -p 'test_content_integrity.py' -v
-      - name: M02 static security and script contract
+      - name: M02 static safety
         run: python -m unittest discover -s tests -p 'test_web_static.py' -v
-      - name: Read-only course inventory
+      - name: M03 builder contract
+        run: python -m unittest discover -s tests -p 'test_site_builder.py' -v
+      - name: Read-only source inventory
         run: python main.py audit
+      - name: Deterministic site build
+        run: |
+          python tools/build_site.py inventory
+          python tools/build_site.py build
+          python tools/build_site.py check
+      - name: Validate repeat build without overwriting
+        run: python tools/build_site.py build
 
   web-e2e:
     runs-on: ubuntu-latest
@@ -28,9 +42,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install browser runner
+          cache: pip
+          cache-dependency-path: requirements-site.txt
+      - name: Install site and browser requirements
         run: |
+          python -m pip install -r requirements-site.txt
           python -m pip install 'playwright==1.55.0'
           python -m playwright install --with-deps chromium
-      - name: Chromium desktop, mobile and annotations E2E
+      - name: Build site before E2E
+        run: |
+          python tools/build_site.py build
+          python tools/build_site.py check
+      - name: Legacy M02 article browser tests
         run: python -m unittest discover -s tests -p 'test_web_e2e.py' -v
+      - name: Built site browser tests
+        run: python -m unittest discover -s tests -p 'test_site_e2e.py' -v

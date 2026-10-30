@@ -2,3 +2,6 @@
 __pycache__/
 *.py[cod]
 .venv/
+
+# Generated site: deploy directory, never Git source tree
+/site-dist/
