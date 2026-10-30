@@ -56,115 +56,154 @@ structure = {
 }
 
 
-import os
-from typing import Dict, Any
+from __future__ import annotations
 
-def create_directories_and_files(
-        base_path: str, 
-        structure: Dict[str, Any], 
-        readme_file, 
-        parent_path: str = "", 
-        level: int = 1
-    ):
-    heading = "#" * level
+import argparse
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+from zipfile import ZIP_DEFLATED, ZipFile
 
-    for key, value in structure.items():
-        current_path = os.path.join(base_path, key.replace(" ", "_").replace("/", "_").replace("-", "_"))
 
-        # 创建目录
-        os.makedirs(current_path, exist_ok=True)
+def expected_lessons():
+    """Return stable relative Markdown paths from the existing course catalog."""
+    for section, titles in structure.items():
+        for index, title in enumerate(titles):
+            safe_title = title.replace(' ', '_').replace('/', '_').replace('-', '_')
+            yield Path(section) / f'{index:02d}_{safe_title}.md'
 
-        # 在README中添加章节标题
-        if parent_path:
-            readme_file.write(f"{heading} {parent_path}/{key}\n\n")
+
+def initialize(root: Path, *, dry_run: bool = False) -> dict:
+    """Create only missing lesson skeletons, never modify existing files."""
+    created, existing = [], []
+    for relative in expected_lessons():
+        target = root / relative
+        if target.exists() or target.is_symlink():
+            existing.append(relative.as_posix())
+            continue
+        if not dry_run:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with target.open('x', encoding='utf-8') as stream:
+                    stream.write(f'# {target.stem}\n\n')
+                    stream.write(f'<!-- TODO: lesson source {relative.as_posix()} -->\n')
+            except FileExistsError:
+                existing.append(relative.as_posix())
+                continue
+        created.append(relative.as_posix())
+    return {'created': created, 'existing': existing, 'dry_run': dry_run}
+
+
+def audit(root: Path) -> dict:
+    """Read-only inventory differentiating notes from generated skeletons."""
+    missing, placeholders, substantive = [], [], []
+    for relative in expected_lessons():
+        target = root / relative
+        name = relative.as_posix()
+        if not target.is_file():
+            missing.append(name)
+            continue
+        body = target.read_text(encoding='utf-8')
+        if '"""' in body:
+            body = body.rsplit('"""', 1)[-1]
+        if len(body.strip()) < 80 or '<!-- TODO:' in body:
+            placeholders.append(name)
         else:
-            readme_file.write(f"{heading} {key}\n\n")
+            substantive.append(name)
+    return {'expected': len(missing) + len(placeholders) + len(substantive),
+            'substantive': len(substantive), 'placeholders': placeholders,
+            'missing': missing}
 
-        # 递归调用创建子目录和文件
-        if isinstance(value, dict) and value:
-            create_directories_and_files(
-                current_path, 
-                value, 
-                readme_file, 
-                parent_path + "/" + key if parent_path else key, 
-                level + 1
-            )
-        elif isinstance(value, list):
-            for idx, item in enumerate(value):
-                if isinstance(item, dict) and item:
-                    create_directories_and_files(
-                        current_path, 
-                        item, 
-                        readme_file, 
-                        parent_path + "/" + key if parent_path else key, 
-                        level + 1
-                    )
-                else:
-                    item = f"{idx:02d}_{item}"
-                    # file_name = item.replace(" ", "_").replace("/", "_").replace("-", "_") + ".py"
-                    # file_path = os.path.join(current_path, file_name)
-                    # with open(file_path, 'w', encoding='utf-8') as file:
-                    #     file.write(f"# {item}\n\n")
-                    #     file.write(f'"""\n\nLecture: {parent_path}/{key}\nContent: {item}\n\n"""\n\n')
 
-                    # # 在README中添加文件链接
-                    # item_clean = item.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    # parent_clean = parent_path.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    # key_clean = key.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    # readme_file.write(f"- [{item}](./{parent_clean}/{key_clean}/{item_clean}.py)\n")
-                    
-                    
-                    file_name = item.replace(" ", "_").replace("/", "_").replace("-", "_") + ".md"
-                    file_path = os.path.join(current_path, file_name)
-                    with open(file_path, 'w', encoding='utf-8') as file:
-                        file.write(f"# {item}\n\n")
-                        file.write(f'"""\n\nLecture: {parent_path}/{key}\nContent: {item}\n\n"""\n\n')
+def content_files(root: Path):
+    """Legacy course documents and site assets only; never follow symlinks."""
+    extensions = {'.md', '.html', '.pdf', '.css', '.js'}
+    for child in sorted(root.iterdir()):
+        if child.is_symlink():
+            raise ValueError(f'Symlinks are not backed up: {child}')
+        if child.is_file() and (child.suffix in extensions or child.name == 'main.py'):
+            yield child
+        if child.is_dir() and child.name[:2].isdigit() and child.name[2:3] == '_':
+            for file in sorted(child.rglob('*')):
+                if file.is_symlink():
+                    raise ValueError(f'Symlinks are not backed up: {file}')
+                if file.is_file() and file.suffix in extensions:
+                    yield file
 
-                    # 在README中添加文件链接
-                    item_clean = item.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    parent_clean = parent_path.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    key_clean = key.replace(" ", "_").replace("/", "_").replace("-", "_")
-                    readme_file.write(f"- [{item}](./{parent_clean}/{key_clean}/{item_clean}.md)\n")
-        else:
-            # # 创建文件并写入初始内容
-            # file_name = key.replace(" ", "_").replace("/", "_").replace("-", "_") + ".py"
-            # file_path = os.path.join(current_path, file_name)
-            # with open(file_path, 'w', encoding='utf-8') as file:
-            #     file.write(f"# {key}\n\n")
-            #     file.write(f'"""\n\nLecture: {parent_path}/{key}\nContent: {key}\n\n"""\n\n')
 
-            # # 在README中添加文件链接
-            # parent_clean = parent_path.replace(" ", "_").replace("/", "_").replace("-", "_")
-            # key_clean = key.replace(" ", "_").replace("/", "_").replace("-", "_")
-            # readme_file.write(f"- [{key}](./{parent_clean}/{key_clean}/{file_name})\n")
-            
-            
-            file_name = key.replace(" ", "_").replace("/", "_").replace("-", "_") + ".md"
-            file_path = os.path.join(current_path, file_name)
-            with open(file_path, 'w', encoding='utf-8') as file:
-                file.write(f"# {key}\n\n")
-                file.write(f'"""\n\nLecture: {parent_path}/{key}\nContent: {key}\n\n"""\n\n')
+def backup(root: Path, archive: Path) -> dict:
+    """Create an exclusive ZIP with per-file SHA-256 hashes; never overwrite."""
+    files = list(content_files(root))
+    if not files:
+        raise ValueError('No course files found; refusing an empty backup')
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    records = []
+    with ZipFile(archive, mode='x', compression=ZIP_DEFLATED) as output:
+        for source in files:
+            relative = source.relative_to(root).as_posix()
+            contents = source.read_bytes()
+            records.append({'path': relative, 'sha256': hashlib.sha256(contents).hexdigest(),
+                            'bytes': len(contents)})
+            output.writestr(relative, contents)
+        manifest = {'schema_version': 1,
+                    'created_at_utc': datetime.now(timezone.utc).isoformat(),
+                    'files': records}
+        output.writestr('backup-manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+    return {'archive': str(archive), 'files': len(records),
+            'verified': verify_backup(archive)['valid']}
 
-            # 在README中添加文件链接
-            parent_clean = parent_path.replace(" ", "_").replace("/", "_").replace("-", "_")
-            key_clean = key.replace(" ", "_").replace("/", "_").replace("-", "_")
-            readme_file.write(f"- [{key}](./{parent_clean}/{key_clean}/{file_name})\n")
 
-        # 添加空行以分隔不同的章节
-        readme_file.write("\n")
+def verify_backup(archive: Path) -> dict:
+    """Validate a backup without extracting or trusting archive entry paths."""
+    with ZipFile(archive, 'r') as source:
+        entries = source.namelist()
+        if len(entries) != len(set(entries)) or entries.count('backup-manifest.json') != 1:
+            raise ValueError('Duplicate or missing manifest entries')
+        manifest = json.loads(source.read('backup-manifest.json'))
+        if manifest.get('schema_version') != 1 or not isinstance(manifest.get('files'), list):
+            raise ValueError('Unsupported backup manifest')
+        paths = []
+        for record in manifest['files']:
+            path = record['path']
+            parts = PurePosixPath(path).parts
+            if not parts or path.startswith('/') or any(p in ('.', '..') for p in parts):
+                raise ValueError(f'Unsafe backup path: {path}')
+            data = source.read(path)
+            if (len(data) != record['bytes'] or
+                    hashlib.sha256(data).hexdigest() != record['sha256']):
+                raise ValueError(f'Backup integrity check failed: {path}')
+            paths.append(path)
+        if len(paths) != len(set(paths)) or set(entries) != set(paths) | {'backup-manifest.json'}:
+            raise ValueError('Archive and manifest do not match')
+    return {'valid': True, 'files': len(paths)}
 
-def main():
-    root_dir = './'
-    # 创建根目录
-    os.makedirs(root_dir, exist_ok=True)
 
-    # 创建 README.md 文件
-    with open(os.path.join(root_dir, "README.md"), 'w', encoding='utf-8') as readme_file:
-        readme_file.write("# 行为金融学\n\n")
-        readme_file.write("这是一个关于行为金融学的目录结构。\n\n")
-        create_directories_and_files(root_dir, structure, readme_file)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description='Safe course content tools')
+    parser.add_argument('command', nargs='?', default='audit',
+                        choices=['audit', 'init', 'backup', 'verify-backup'])
+    parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parent)
+    parser.add_argument('--archive', type=Path, help='Required for backup/verify-backup')
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--strict', action='store_true',
+                        help='Fail audit on missing/placeholder lessons')
+    args = parser.parse_args(argv)
+    root = args.root.resolve()
+    if args.command == 'audit':
+        result = audit(root)
+        exit_code = int(args.strict and bool(result['missing'] or result['placeholders']))
+    elif args.command == 'init':
+        result, exit_code = initialize(root, dry_run=args.dry_run), 0
+    else:
+        if args.archive is None:
+            parser.error('--archive is required for backup and verify-backup')
+        result = (backup(root, args.archive) if args.command == 'backup'
+                  else verify_backup(args.archive))
+        exit_code = 0
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return exit_code
 
-    print("目录和文件结构已生成，并创建 README.md 文件。")
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    raise SystemExit(main())
