@@ -85,7 +85,8 @@ class ContentIntegrityTests(unittest.TestCase):
 
     def test_rewritten_module_two_articles_are_self_contained(self):
         root = Path(__file__).resolve().parents[1]
-        lessons = sorted(p for p in (root / '02_模块二_认知非理性').glob('*.html')\n                         if __import__('re').search(r'_2\\.[1-5]_', p.name))
+        lessons = sorted(p for p in (root / '02_模块二_认知非理性').glob('*.html')
+                         if __import__('re').search(r'_2\.[1-5]_', p.name))
         self.assertEqual(len(lessons), 5)
         banned = (
             '讲义介绍了', '讲义指出', '讲义提到', '讲义将', '讲义把',
