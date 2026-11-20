@@ -83,5 +83,24 @@ class ContentIntegrityTests(unittest.TestCase):
         self.assertEqual(readme.read_text(encoding='utf-8'), '# Hand-written README')
 
 
+    def test_rewritten_module_two_articles_are_self_contained(self):
+        root = Path(__file__).resolve().parents[1]
+        lessons = sorted((root / '02_模块二_认知非理性').glob('*.html'))
+        self.assertEqual(len(lessons), 5)
+        banned = (
+            '讲义介绍了', '讲义指出', '讲义提到', '讲义将', '讲义把',
+            '讲义以', '讲义用', '讲义强调', '本节聚焦', '本页以用户提供',
+        )
+        for lesson in lessons:
+            html = lesson.read_text(encoding='utf-8')
+            self.assertEqual(html.count('<h1>'), 1, lesson.name)
+            self.assertIn('<main id="content">', html, lesson.name)
+            self.assertIn('id="references"', html, lesson.name)
+            visible = __import__('re').sub(r'<script[\\s\\S]*?</script>|<style[\\s\\S]*?</style>', ' ', html)
+            visible = __import__('re').sub(r'<[^>]+>', ' ', visible)
+            for phrase in banned:
+                self.assertNotIn(phrase, visible, f'{lesson.name}: {phrase}')
+
+
 if __name__ == '__main__':
     unittest.main()
