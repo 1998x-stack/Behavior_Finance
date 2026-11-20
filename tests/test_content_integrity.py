@@ -96,7 +96,7 @@ class ContentIntegrityTests(unittest.TestCase):
             self.assertEqual(html.count('<h1>'), 1, lesson.name)
             self.assertIn('<main id="content">', html, lesson.name)
             self.assertIn('id="references"', html, lesson.name)
-            visible = __import__('re').sub(r'<script[\\s\\S]*?</script>|<style[\\s\\S]*?</style>', ' ', html)
+            visible = __import__('re').sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>', ' ', html)
             visible = __import__('re').sub(r'<[^>]+>', ' ', visible)
             for phrase in banned:
                 self.assertNotIn(phrase, visible, f'{lesson.name}: {phrase}')
