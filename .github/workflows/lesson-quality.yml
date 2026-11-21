@@ -1,0 +1,33 @@
+name: lesson-quality
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/module4-lessons-and-qa-20261121']
+permissions:
+  contents: read
+jobs:
+  content-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/check_lessons.py
+  browser-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install playwright==1.56.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python scripts/browser_qa.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lesson-browser-qa
+          path: reports/browser-qa/
+          if-no-files-found: ignore

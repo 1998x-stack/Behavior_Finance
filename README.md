@@ -98,3 +98,21 @@ python -m unittest discover -s tests -v
 - [Kahneman & Tversky (1979), Prospect Theory](https://doi.org/10.2307/1914185)
 - [Barber & Odean (2000), Trading Is Hazardous to Your Wealth](https://doi.org/10.1111/0022-1082.00226)
 - [GitHub Pages 文档](https://docs.github.com/pages)
+
+## 第四模块重构与课程质量门禁（2026-11-21）
+
+第四模块 [4.1–4.6](04_模块四_典型的交易错误/) 的 Markdown 和 HTML 已成对重写，主题分别为：熟悉性与分散化、简单分散化、过度交易、处置效应、买入注意力与羊群效应。每页都有独立定义、机制、假设案例、风险边界及原创机制图。模块三的正式课次止于 3.5，现有课程目录没有 3.6；不会虚构章节。
+
+模块一至三的既有 HTML 保留原有教学图和交互，统一了跨章节导航与术语对照，并把模块三的通用图改为与主题对应的图解。原有 Markdown 与 HTML 之间存在历史文本差异：本轮严格逐段一致性门禁覆盖 **4.1–4.6**；较早章节先输出差异报告，尚不能宣称已全部同步。详见 [课程 QA 与同步审计](docs/LESSON_QA.md)。
+
+本地验收命令：
+
+```bash
+python scripts/check_lessons.py
+python -m unittest discover -s tests -v
+python -m pip install playwright==1.56.0
+python -m playwright install chromium
+python scripts/browser_qa.py
+```
+
+GitHub Actions 的 `lesson-quality` 流程检查 20 篇课程的内部导航、第四模块的 Markdown/HTML 段落对应关系，及 360/390/768/1440 px 离线 Chromium 页面表现。运行结果和截图以实际 Actions 日志及上传工件为准，代码存在不等于验证通过。
