@@ -18,7 +18,10 @@
 .lesson-top a{text-decoration:none;color:var(--course-teal)}
 .lesson-main{min-width:0}.lesson-main h1{font-size:clamp(32px,5vw,52px);line-height:1.22;letter-spacing:-.035em;margin:12px 0 22px}
 .lesson-main h2{font-size:24px;line-height:1.4;margin:0 0 14px}.lesson-main p{margin:0 0 15px}
-.lesson-main section{padding:25px 0;border-bottom:1px solid var(--course-border)}.lesson-kicker{font-size:12px;letter-spacing:.1em;font-weight:750;color:var(--course-teal)}
+.lesson-main section{padding:25px 0;border-bottom:1px solid var(--course-border)}
+/* Allow long educational formulas to wrap on narrow screens without concealing overflow. */
+.lesson-main p,.lesson-main section{overflow-wrap:anywhere;word-break:normal}
+.lesson-kicker{font-size:12px;letter-spacing:.1em;font-weight:750;color:var(--course-teal)}
 .lesson-dek{font-size:20px;color:var(--course-muted)}
 .lesson-diagram{margin:26px 0;background:#f4f7f3;border:1px solid var(--course-border);border-radius:14px;padding:14px}
 .lesson-diagram svg{display:block;width:100%;height:auto}.lesson-diagram figcaption{font-size:13px;color:var(--course-muted);margin-top:9px}
